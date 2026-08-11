@@ -1,0 +1,16 @@
+{
+  "id": "claude-code",
+  "version": "1.0.0",
+  "name": "Claude Code (user-owned, auto-updatable)",
+  "description": "Installs the Claude Code CLI as the remote user so its built-in auto-update can replace the install in place.",
+  "documentationURL": "https://github.com/aj-foster/devcontainer-features/tree/main/src/claude-code",
+  "keywords": ["claude", "claude-code", "anthropic", "agents"],
+  "options": {
+    "version": {
+      "type": "string",
+      "default": "latest",
+      "description": "npm dist-tag or exact version of @anthropic-ai/claude-code to install."
+    }
+  },
+  "installsAfter": ["ghcr.io/devcontainers/features/node"]
+}

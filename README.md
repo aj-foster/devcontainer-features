@@ -34,11 +34,40 @@ touch ~/.claude.json
 
 See [src/agent-home](./src/agent-home) for mounts and details.
 
+### `claude-code`
+
+Installs the Claude Code CLI as the remote user so its built-in auto-update can replace the install in place. Prefer this over `ghcr.io/anthropics/devcontainer-features/claude-code`, which installs as root and breaks in-place auto-update (`no write permission to npm prefix`).
+
+```jsonc
+{
+    "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+    "features": {
+        "ghcr.io/devcontainers/features/node:1": {},
+        "ghcr.io/aj-foster/devcontainer-features/claude-code:1": {}
+    }
+}
+```
+
+Or enable it for all containers via user settings (alongside `agent-home`; remove any Anthropic `claude-code` entry):
+
+```json
+"dev.containers.defaultFeatures": {
+  "ghcr.io/aj-foster/devcontainer-features/agent-home:1": {},
+  "ghcr.io/aj-foster/devcontainer-features/claude-code:1": {}
+}
+```
+
+Requires `ghcr.io/devcontainers/features/node:1`. See [src/claude-code](./src/claude-code) for options and details.
+
 ## Repo structure
 
 ```
 ├── src
-│   └── agent-home
+│   ├── agent-home
+│   │   ├── devcontainer-feature.json
+│   │   ├── install.sh
+│   │   └── README.md
+│   └── claude-code
 │       ├── devcontainer-feature.json
 │       ├── install.sh
 │       └── README.md
@@ -56,12 +85,14 @@ Features are versioned via the `version` field in `devcontainer-feature.json` (s
 2. Merge to `main`.
 3. Run **Release dev container features** from the Actions tab (`workflow_dispatch`).
 4. After the first publish, mark each GHCR package public (Settings → Packages) so it stays within the free tier:
-   `https://github.com/users/aj-foster/packages/container/devcontainer-features%2Fagent-home/settings`
+   - `https://github.com/users/aj-foster/packages/container/devcontainer-features%2Fagent-home/settings`
+   - `https://github.com/users/aj-foster/packages/container/devcontainer-features%2Fclaude-code/settings`
 
 Published references:
 
 ```
 ghcr.io/aj-foster/devcontainer-features/agent-home:1
+ghcr.io/aj-foster/devcontainer-features/claude-code:1
 ```
 
 A collection metadata package is also published at `ghcr.io/aj-foster/devcontainer-features`.

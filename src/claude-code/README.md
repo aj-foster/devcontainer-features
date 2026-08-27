@@ -14,7 +14,16 @@ This feature installs (or chowns) as the remote user so `claude update` can succ
 
 ## Requirements
 
-Requires the Node.js feature so `npm` is available:
+Uses `npm` if it is already on PATH. `installsAfter` waits for [`ghcr.io/devcontainers/features/node`](https://github.com/devcontainers/features/tree/main/src/node) when that Feature is also enabled, so project Node options are honored.
+
+If `npm` is still missing, this Feature downloads the current Node.js LTS into an isolated prefix and does **not** put `node` or `npm` on PATH. Only a `claude` wrapper is exposed:
+
+| Path | Role |
+| --- | --- |
+| `/opt/claude-code/node` | Private Node.js + npm prefix (owned by the remote user) |
+| `/opt/claude-code/bin/claude` | Wrapper that prepends the private `bin` for that process only |
+
+Add the Node Feature if the project itself needs Node.js:
 
 ```json
 "ghcr.io/devcontainers/features/node:1": {}

@@ -1,8 +1,11 @@
 {
   "id": "claude-code",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "name": "Claude Code (user-owned, auto-updatable)",
-  "description": "Installs the Claude Code CLI as the remote user so its built-in auto-update can replace the install in place.",
+  "description": "Installs the Claude Code CLI as the remote user so its built-in auto-update can replace the install in place. Bootstraps an isolated Node.js if npm is missing.",
+  "containerEnv": {
+    "PATH": "/opt/claude-code/bin:${PATH}"
+  },
   "documentationURL": "https://github.com/aj-foster/devcontainer-features/tree/main/src/claude-code",
   "keywords": ["claude", "claude-code", "anthropic", "agents"],
   "options": {

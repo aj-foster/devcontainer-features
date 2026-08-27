@@ -42,7 +42,6 @@ Installs the Claude Code CLI as the remote user so its built-in auto-update can 
 {
     "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
     "features": {
-        "ghcr.io/devcontainers/features/node:1": {},
         "ghcr.io/aj-foster/devcontainer-features/claude-code:1": {}
     }
 }
@@ -57,7 +56,7 @@ Or enable it for all containers via user settings (alongside `agent-home`; remov
 }
 ```
 
-Requires `ghcr.io/devcontainers/features/node:1`. See [src/claude-code](./src/claude-code) for options and details.
+Uses `npm` when it is already on PATH (and waits for `ghcr.io/devcontainers/features/node` when that Feature is listed). Otherwise it bootstraps an isolated Node.js under `/opt/claude-code` and exposes only `claude`. See [src/claude-code](./src/claude-code) for options and details.
 
 ## Repo structure
 
@@ -70,6 +69,7 @@ Requires `ghcr.io/devcontainers/features/node:1`. See [src/claude-code](./src/cl
 │   └── claude-code
 │       ├── devcontainer-feature.json
 │       ├── install.sh
+│       ├── bootstrap-node.sh
 │       └── README.md
 └── .github/workflows
     └── release.yaml

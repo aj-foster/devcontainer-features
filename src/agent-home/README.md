@@ -6,12 +6,13 @@ This feature is specifically made for devcontainers run by VS Code (or Cursor).
 
 ## Mounts
 
-| Host path        | Container path              | Purpose                                        |
-| ---------------- | --------------------------- | ---------------------------------------------- |
-| `~/.cursor`      | `/home/vscode/.cursor`      | Cursor MCP, skills, rules                      |
-| `~/.claude`      | `/home/vscode/.claude`      | Claude skills, rules, agents, plugins          |
-| `~/.claude.json` | `/home/vscode/.claude.json` | Claude OAuth / personal MCP                    |
-| `~/.agents`      | `/home/vscode/.agents`      | Canonical `npx skills` store (symlink targets) |
+| Host path         | Container path               | Purpose                                        |
+| ----------------- | ---------------------------- | ---------------------------------------------- |
+| `~/.cursor`       | `/home/vscode/.cursor`       | Cursor MCP, skills, rules                      |
+| `~/.claude`       | `/home/vscode/.claude`       | Claude skills, rules, agents, plugins          |
+| `~/.claude.json`  | `/home/vscode/.claude.json`  | Claude OAuth / personal MCP                    |
+| `~/.agents`       | `/home/vscode/.agents`       | Canonical `npx skills` store (symlink targets) |
+| `~/.togetherlink` | `/home/vscode/.togetherlink` | Profile and authentication for Together AI     |
 
 `~/.agents` is required for symlink-mode global skills (`npx skills add -g`),
 where agent dirs link to `../../.agents/skills/...`.

@@ -1,6 +1,6 @@
 {
   "id": "agent-home",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "name": "Agent Home (host bind mounts)",
   "description": "Bind-mount host Cursor, Claude Code, and shared agents config (skills/rules/MCP) into the container user home.",
   "documentationURL": "https://github.com/aj-foster/devcontainer-features/tree/main/src/agent-home",
@@ -30,6 +30,11 @@
     {
       "source": "${localEnv:HOME}${localEnv:USERPROFILE}/.agents",
       "target": "/home/vscode/.agents",
+      "type": "bind"
+    },
+    {
+      "source": "${localEnv:HOME}${localEnv:USERPROFILE}/.togetherlink",
+      "target": "/home/vscode/.togetherlink",
       "type": "bind"
     }
   ]

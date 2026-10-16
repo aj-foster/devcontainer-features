@@ -2,6 +2,15 @@
 
 A collection of [dev container Features](https://containers.dev/implementors/features/) published to GitHub Container Registry (GHCR).
 
+## Getting started
+
+Don't have a `.devcontainer/` in your project yet? Run one of these from your project root to copy this repo's `devcontainer.json` into the right place:
+
+```bash
+# curl
+mkdir -p .devcontainer && curl -fsSL https://raw.githubusercontent.com/aj-foster/devcontainer-features/main/.devcontainer/devcontainer.json -o .devcontainer/devcontainer.json
+```
+
 ## Features
 
 ### `agent-home`

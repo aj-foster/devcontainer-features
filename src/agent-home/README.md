@@ -12,10 +12,16 @@ This feature is specifically made for devcontainers run by VS Code (or Cursor).
 | `~/.claude`       | `/home/vscode/.claude`       | Claude skills, rules, agents, plugins          |
 | `~/.claude.json`  | `/home/vscode/.claude.json`  | Claude OAuth / personal MCP                    |
 | `~/.agents`       | `/home/vscode/.agents`       | Canonical `npx skills` store (symlink targets) |
-| `~/.togetherlink` | `/home/vscode/.togetherlink` | Profile and authentication for Together AI     |
+| `~/.togetherlink` | `/home/vscode/.togetherlink` | Together Link config/auth (`config.json`)      |
 
 `~/.agents` is required for symlink-mode global skills (`npx skills add -g`),
 where agent dirs link to `../../.agents/skills/...`.
+
+The [`together-link`](../together-link) Feature installs the Together Link CLI
+into `/opt/together-link`, so this mount shares only Together Link's
+`config.json` (auth/profile). The CLI reads config from `~/.togetherlink`
+regardless of where its binaries live, so auth stays in sync with the host while
+binaries do not.
 
 Assumes `remoteUser` is `vscode`.
 

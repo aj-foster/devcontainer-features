@@ -67,6 +67,30 @@ Or enable it for all containers via user settings (alongside `agent-home`; remov
 
 Uses `npm` when it is already on PATH (and waits for `ghcr.io/devcontainers/features/node` when that Feature is listed). Otherwise it bootstraps an isolated Node.js under `/opt/claude-code` and exposes only `claude`. See [src/claude-code](./src/claude-code) for options and details.
 
+### `together-link`
+
+Installs the [Together Link](https://www.together.ai/link) CLI (`togetherlink`) as the remote user, with binaries isolated under `/opt/together-link` so that cross-mounting `~/.togetherlink` (via `agent-home`) shares only config/auth/sessions — never binaries — and the CLI's self-update never rewrites the host's install.
+
+```jsonc
+{
+    "image": "mcr.microsoft.com/devcontainers/base:debian",
+    "features": {
+        "ghcr.io/aj-foster/devcontainer-features/together-link:1": {}
+    }
+}
+```
+
+Or enable it for all containers via user settings (alongside `agent-home`):
+
+```json
+"dev.containers.defaultFeatures": {
+  "ghcr.io/aj-foster/devcontainer-features/agent-home:1": {},
+  "ghcr.io/aj-foster/devcontainer-features/together-link:1": {}
+}
+```
+
+Bootstraps [Bun](https://bun.sh) if it is missing; no Node Feature required. Together Link is early-stage — see [src/together-link](./src/together-link) for the config/binary split and a maintenance guide for when the upstream installer or CLI layout changes.
+
 ## Repo structure
 
 ```
@@ -75,10 +99,14 @@ Uses `npm` when it is already on PATH (and waits for `ghcr.io/devcontainers/feat
 │   │   ├── devcontainer-feature.json
 │   │   ├── install.sh
 │   │   └── README.md
-│   └── claude-code
+│   ├── claude-code
+│   │   ├── devcontainer-feature.json
+│   │   ├── install.sh
+│   │   ├── bootstrap-node.sh
+│   │   └── README.md
+│   └── together-link
 │       ├── devcontainer-feature.json
 │       ├── install.sh
-│       ├── bootstrap-node.sh
 │       └── README.md
 └── .github/workflows
     └── release.yaml
@@ -96,12 +124,14 @@ Features are versioned via the `version` field in `devcontainer-feature.json` (s
 4. After the first publish, mark each GHCR package public (Settings → Packages) so it stays within the free tier:
    - `https://github.com/users/aj-foster/packages/container/devcontainer-features%2Fagent-home/settings`
    - `https://github.com/users/aj-foster/packages/container/devcontainer-features%2Fclaude-code/settings`
+   - `https://github.com/users/aj-foster/packages/container/devcontainer-features%2Ftogether-link/settings`
 
 Published references:
 
 ```
 ghcr.io/aj-foster/devcontainer-features/agent-home:1
 ghcr.io/aj-foster/devcontainer-features/claude-code:1
+ghcr.io/aj-foster/devcontainer-features/together-link:1
 ```
 
 A collection metadata package is also published at `ghcr.io/aj-foster/devcontainer-features`.

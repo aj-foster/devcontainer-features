@@ -1,0 +1,12 @@
+{
+  "id": "together-link",
+  "version": "1.0.0",
+  "name": "Together Link (user-owned, auto-updatable)",
+  "description": "Installs the Together Link CLI for the remote user with binaries isolated under /opt/together-link, so a shared ~/.togetherlink carries only config/auth/sessions and self-update never touches the host. Installs Bun if it is missing.",
+  "containerEnv": {
+    "TOGETHERLINK_HOME": "/opt/together-link",
+    "PATH": "/opt/together-link/bin:${PATH}"
+  },
+  "documentationURL": "https://github.com/aj-foster/devcontainer-features/tree/main/src/together-link",
+  "keywords": ["together", "togetherlink", "together-ai", "llm", "agents"]
+}

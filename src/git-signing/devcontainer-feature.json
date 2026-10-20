@@ -1,0 +1,31 @@
+{
+  "id": "git-signing",
+  "version": "1.0.0",
+  "name": "Git signing (SSH, forwarded agent)",
+  "description": "Writes SSH commit and tag signing configuration into the container's system git config, signing through the SSH agent the editor forwards into the container. Meant for containers that should sign (for example work machines), not for every container.",
+  "documentationURL": "https://github.com/aj-foster/devcontainer-features/tree/main/src/git-signing",
+  "keywords": ["git", "signing", "gpg", "ssh", "commit-signing"],
+  "options": {
+    "signingKey": {
+      "type": "string",
+      "default": "",
+      "description": "Public key git signs with, as a raw key (\"ssh-ed25519 AAAA...\"), a key:: literal, or a path to a public key file. Effectively required: an empty value fails the install, so a forgotten key breaks the build instead of producing unsigned commits."
+    },
+    "signingProgram": {
+      "type": "string",
+      "default": "",
+      "description": "Value for gpg.ssh.program. Empty (the default) omits the setting, so git uses ssh-keygen and the forwarded agent. A host path such as 1Password's /Applications/1Password.app/Contents/MacOS/op-ssh-sign does not exist in a Linux container and is warned about at build time."
+    },
+    "signCommits": {
+      "type": "boolean",
+      "default": true,
+      "description": "Set commit.gpgsign, so commits are signed without -S."
+    },
+    "signTags": {
+      "type": "boolean",
+      "default": true,
+      "description": "Set tag.gpgsign, so tags are signed without -s."
+    }
+  },
+  "installsAfter": ["ghcr.io/devcontainers/features/git"]
+}

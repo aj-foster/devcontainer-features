@@ -91,6 +91,33 @@ Or enable it for all containers via user settings (alongside `agent-home`):
 
 Bootstraps [Bun](https://bun.sh) if it is missing; no Node Feature required. Together Link is early-stage — see [src/together-link](./src/together-link) for the config/binary split and a maintenance guide for when the upstream installer or CLI layout changes.
 
+### `git-signing`
+
+Writes SSH commit and tag signing configuration into the container's system git config (`/etc/gitconfig`), signing through the SSH agent the editor forwards into the container. Meant for the containers that should sign (work) rather than every container: enable it per machine via user settings, so the shared `~/.gitconfig` stays signing-free.
+
+```jsonc
+{
+    "image": "mcr.microsoft.com/devcontainers/base:debian",
+    "features": {
+        "ghcr.io/aj-foster/devcontainer-features/git-signing:1": {
+            "signingKey": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI... user@host"
+        }
+    }
+}
+```
+
+Or enable it for all containers on a machine that should sign:
+
+```json
+"dev.containers.defaultFeatures": {
+  "ghcr.io/aj-foster/devcontainer-features/git-signing:1": {
+    "signingKey": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI... user@host"
+  }
+}
+```
+
+Leaves `gpg.ssh.program` unset by default so git uses `ssh-keygen` with the forwarded agent — no 1Password binary needs to exist in the container. See [src/git-signing](./src/git-signing) for options and verification.
+
 ## Repo structure
 
 ```
@@ -103,6 +130,10 @@ Bootstraps [Bun](https://bun.sh) if it is missing; no Node Feature required. Tog
 │   │   ├── devcontainer-feature.json
 │   │   ├── install.sh
 │   │   ├── bootstrap-node.sh
+│   │   └── README.md
+│   ├── git-signing
+│   │   ├── devcontainer-feature.json
+│   │   ├── install.sh
 │   │   └── README.md
 │   └── together-link
 │       ├── devcontainer-feature.json
@@ -124,6 +155,7 @@ Features are versioned via the `version` field in `devcontainer-feature.json` (s
 4. After the first publish, mark each GHCR package public (Settings → Packages) so it stays within the free tier:
    - `https://github.com/users/aj-foster/packages/container/devcontainer-features%2Fagent-home/settings`
    - `https://github.com/users/aj-foster/packages/container/devcontainer-features%2Fclaude-code/settings`
+   - `https://github.com/users/aj-foster/packages/container/devcontainer-features%2Fgit-signing/settings`
    - `https://github.com/users/aj-foster/packages/container/devcontainer-features%2Ftogether-link/settings`
 
 Published references:
@@ -131,6 +163,7 @@ Published references:
 ```
 ghcr.io/aj-foster/devcontainer-features/agent-home:1
 ghcr.io/aj-foster/devcontainer-features/claude-code:1
+ghcr.io/aj-foster/devcontainer-features/git-signing:1
 ghcr.io/aj-foster/devcontainer-features/together-link:1
 ```
 

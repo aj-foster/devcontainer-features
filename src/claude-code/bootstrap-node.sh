@@ -20,6 +20,29 @@ claude_code_download() {
   fi
 }
 
+# Node.js is fetched over HTTP, so the image needs some downloader. Most have
+# one; a slim image with neither can normally install curl with its own package
+# manager, which is cheaper than failing the build. Called once before the first
+# download rather than from claude_code_download, which runs several times.
+claude_code_ensure_downloader() {
+  if command -v curl >/dev/null || command -v wget >/dev/null; then
+    return 0
+  fi
+
+  echo "Neither curl nor wget is present; installing curl..."
+  if command -v apt-get >/dev/null; then
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get update -y && apt-get install -y --no-install-recommends curl
+  elif command -v apk >/dev/null; then
+    apk add --no-cache curl
+  else
+    echo "ERROR: no curl or wget, and no supported package manager (apt-get, apk)" >&2
+    echo "to install one. Install curl, or add" >&2
+    echo "\"ghcr.io/devcontainers/features/node:1\" so npm is already present." >&2
+    return 1
+  fi
+}
+
 claude_code_node_arch() {
   case "$(uname -m)" in
     x86_64) echo x64 ;;
@@ -82,6 +105,7 @@ claude_code_bootstrap_node() {
   local username="$1"
   local arch version tmp filename url base group
 
+  claude_code_ensure_downloader
   arch="$(claude_code_node_arch)"
   tmp="$(mktemp -d)"
   trap 'rm -rf "$tmp"' RETURN

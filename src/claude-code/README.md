@@ -16,6 +16,8 @@ This feature installs (or chowns) as the remote user so `claude update` can succ
 
 Uses `npm` if it is already on PATH. `installsAfter` waits for [`ghcr.io/devcontainers/features/node`](https://github.com/devcontainers/features/tree/main/src/node) when that Feature is also enabled, so project Node options are honored.
 
+`installsAfter` also names [`common-utils`](https://github.com/devcontainers/features/tree/main/src/common-utils), which is what supplies `curl`/`wget` on images that ship neither — the isolated bootstrap needs one to download Node.js. Feature install order is chosen by the CLI, not by the order keys appear in `devcontainer.json`, and every `ghcr.io/aj-foster/...` id sorts ahead of `ghcr.io/devcontainers/...`, so without that dependency this Feature is installed before the one that provides the downloader.
+
 If `npm` is still missing, this Feature downloads the current Node.js LTS into an isolated prefix and does **not** put `node` or `npm` on PATH. Only a `claude` wrapper is exposed:
 
 | Path | Role |

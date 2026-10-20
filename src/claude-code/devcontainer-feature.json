@@ -15,5 +15,5 @@
       "description": "npm dist-tag or exact version of @anthropic-ai/claude-code to install."
     }
   },
-  "installsAfter": ["ghcr.io/devcontainers/features/node"]
+  "installsAfter": ["ghcr.io/devcontainers/features/node", "ghcr.io/devcontainers/features/common-utils"]
 }

@@ -8,5 +8,6 @@
     "PATH": "/opt/together-link/bin:${PATH}"
   },
   "documentationURL": "https://github.com/aj-foster/devcontainer-features/tree/main/src/together-link",
-  "keywords": ["together", "togetherlink", "together-ai", "llm", "agents"]
+  "keywords": ["together", "togetherlink", "together-ai", "llm", "agents"],
+  "installsAfter": ["ghcr.io/devcontainers/features/common-utils"]
 }

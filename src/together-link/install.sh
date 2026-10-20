@@ -19,8 +19,17 @@ USERNAME="${_REMOTE_USER:-${_CONTAINER_USER:-vscode}}"
 INSTALL_DIR="/opt/together-link"
 INSTALLER_URL="https://link.together.ai/install"
 
-USER_HOME="$(getent passwd "$USERNAME" | cut -d: -f6)"
-USER_HOME="${USER_HOME:-/home/$USERNAME}"
+# The Feature installs *as* the remote user, so it must already exist; the
+# installsAfter on common-utils in devcontainer-feature.json orders us after the
+# Feature that normally creates it. getent exits 2 for a missing key, which
+# under `set -e` would abort before printing anything, so capture it instead.
+USER_HOME="$(getent passwd "$USERNAME" 2>/dev/null | cut -d: -f6 || true)"
+if [ -z "$USER_HOME" ]; then
+  echo "ERROR: remote user '${USERNAME}' does not exist in this image." >&2
+  echo "       This Feature installs as the remote user; create it first, or" >&2
+  echo "       set remoteUser to a user that exists." >&2
+  exit 1
+fi
 USER_GROUP="$(id -gn "$USERNAME")"
 
 # Bun's installer needs curl and unzip; add them only if the base image lacks them.

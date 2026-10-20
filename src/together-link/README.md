@@ -26,6 +26,8 @@ Account-level usage/sessions are tracked cloud-side against the API key, so they
 
 Needs `curl` and `unzip` (for the Bun install); the Feature adds them with `apt-get` if missing. No Node Feature is required — Bun is self-contained. Assumes `remoteUser` is `vscode` (resolved from `_REMOTE_USER`/`_CONTAINER_USER`).
 
+The user must exist by the time this Feature installs. `installsAfter` on `common-utils` in `devcontainer-feature.json` orders it after the Feature that normally creates the user — Feature install order is chosen by the CLI, not by the order keys appear in `devcontainer.json`.
+
 ## Using it with `agent-home`
 
 [`agent-home`](../agent-home) bind-mounts `~/.togetherlink` from the host. With this Feature installing binaries to `/opt`, that mount shares only config/auth. If the host itself has Together Link installed the normal way, its `~/.togetherlink/bin` is visible in the container but unused (PATH points at `/opt`) and never written (self-update targets `/opt`).

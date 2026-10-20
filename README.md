@@ -116,7 +116,7 @@ Or enable it for all containers on a machine that should sign:
 }
 ```
 
-Leaves `gpg.ssh.program` unset by default so git uses `ssh-keygen` with the forwarded agent — no 1Password binary needs to exist in the container. See [src/git-signing](./src/git-signing) for options and verification.
+Leaves `gpg.ssh.program` unset by default so git uses `ssh-keygen` with the forwarded agent — no 1Password binary needs to exist in the container. See [src/git-signing](./src/git-signing) for options, verification, and [what to do when signing fails](./src/git-signing/README.md#when-signing-fails).
 
 ## Repo structure
 

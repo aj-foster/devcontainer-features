@@ -91,6 +91,25 @@ Or enable it for all containers via user settings (alongside `agent-home`):
 
 Bootstraps [Bun](https://bun.sh) if it is missing; no Node Feature required. Together Link is early-stage — see [src/together-link](./src/together-link) for the config/binary split and a maintenance guide for when the upstream installer or CLI layout changes.
 
+### `paperclip-agent`
+
+Prepares a dev container as a **Paperclip SSH target on the shared `paperclip-net` network**: key-only `sshd` on `2222`, Claude Code and Together Link on the non-interactive SSH `PATH`, a mandatory host `~/.paperclip` fleet config mounted at `/opt/paperclip/shared`, a minimal manifest whose slug is the network alias, and a `--json` doctor. Paperclip reaches the target by alias on `2222`; no host port is published. The Paperclip server itself runs elsewhere; this Feature never installs or calls it.
+
+```jsonc
+{
+    "image": "mcr.microsoft.com/devcontainers/base:debian",
+    "features": {
+        "ghcr.io/aj-foster/devcontainer-features/agent-home:1": {},
+        "ghcr.io/aj-foster/devcontainer-features/paperclip-agent:1": {
+            "projectName": "project-foo"
+        }
+    },
+    "runArgs": ["--network=paperclip-net", "--network-alias=project-foo"]
+}
+```
+
+Create `~/.paperclip` on the host before starting the container (`mkdir -p ~/.paperclip/projects`). Add `agent-home` to share the host's `~/.togetherlink` (or run `togetherlink configure` inside the target). Do **not** combine it with `ghcr.io/devcontainers/features/sshd`. See [src/paperclip-agent](./src/paperclip-agent) for the shared-directory schema, Compose/`runArgs` setup, host-side enrollment script, and maintenance notes.
+
 ### `git-signing`
 
 Writes SSH commit and tag signing configuration into the container's system git config (`/etc/gitconfig`), signing through the SSH agent the editor forwards into the container. Meant for the containers that should sign (work) rather than every container: enable it per machine via user settings, so the shared `~/.gitconfig` stays signing-free.
@@ -135,6 +154,12 @@ Leaves `gpg.ssh.program` unset by default so git uses `ssh-keygen` with the forw
 │   │   ├── devcontainer-feature.json
 │   │   ├── install.sh
 │   │   └── README.md
+│   ├── paperclip-agent
+│   │   ├── devcontainer-feature.json
+│   │   ├── install.sh
+│   │   ├── entrypoint.sh
+│   │   ├── doctor.sh
+│   │   └── README.md
 │   └── together-link
 │       ├── devcontainer-feature.json
 │       ├── install.sh
@@ -156,6 +181,7 @@ Features are versioned via the `version` field in `devcontainer-feature.json` (s
    - `https://github.com/users/aj-foster/packages/container/devcontainer-features%2Fagent-home/settings`
    - `https://github.com/users/aj-foster/packages/container/devcontainer-features%2Fclaude-code/settings`
    - `https://github.com/users/aj-foster/packages/container/devcontainer-features%2Fgit-signing/settings`
+   - `https://github.com/users/aj-foster/packages/container/devcontainer-features%2Fpaperclip-agent/settings`
    - `https://github.com/users/aj-foster/packages/container/devcontainer-features%2Ftogether-link/settings`
 
 Published references:
@@ -164,6 +190,7 @@ Published references:
 ghcr.io/aj-foster/devcontainer-features/agent-home:1
 ghcr.io/aj-foster/devcontainer-features/claude-code:1
 ghcr.io/aj-foster/devcontainer-features/git-signing:1
+ghcr.io/aj-foster/devcontainer-features/paperclip-agent:1
 ghcr.io/aj-foster/devcontainer-features/together-link:1
 ```
 

@@ -1,0 +1,35 @@
+{
+  "id": "paperclip-agent",
+  "version": "1.0.0",
+  "name": "Paperclip agent host (SSH + Claude Code + Together Link)",
+  "description": "Prepares a dev container as a Paperclip SSH target on the shared paperclip-net network: key-only sshd on 2222, Claude Code and Together Link on the SSH PATH, shared fleet config from the host's ~/.paperclip, and a manifest whose slug is the network alias.",
+  "documentationURL": "https://github.com/aj-foster/devcontainer-features/tree/main/src/paperclip-agent",
+  "keywords": ["paperclip", "agent", "ssh", "claude", "together", "mcp"],
+  "entrypoint": "/usr/local/share/paperclip-agent/entrypoint.sh",
+  "mounts": [
+    {
+      "source": "${localEnv:HOME}${localEnv:USERPROFILE}/.paperclip",
+      "target": "/opt/paperclip/shared",
+      "type": "bind"
+    }
+  ],
+  "containerEnv": {
+    "PAPERCLIP_AGENT_MCP_CONFIG": "/opt/paperclip/shared/mcp-extra.json",
+    "PAPERCLIP_AGENT_REMOTE_WORKSPACE": "/workspace"
+  },
+  "options": {
+    "projectName": {
+      "type": "string",
+      "default": "",
+      "description": "Optional human-friendly project name. Empty derives it from the workspace (git remote, package metadata, folder name, then hostname)."
+    }
+  },
+  "dependsOn": {
+    "ghcr.io/aj-foster/devcontainer-features/claude-code:1": {},
+    "ghcr.io/aj-foster/devcontainer-features/together-link:1": {}
+  },
+  "installsAfter": [
+    "ghcr.io/devcontainers/features/common-utils",
+    "ghcr.io/aj-foster/devcontainer-features/agent-home"
+  ]
+}

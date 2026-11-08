@@ -108,7 +108,7 @@ Prepares a dev container as a **Paperclip SSH target on the shared `paperclip-ne
 }
 ```
 
-Create `~/.paperclip` on the host before starting the container (`mkdir -p ~/.paperclip/projects`). Add `agent-home` to share the host's `~/.togetherlink` (or run `togetherlink configure` inside the target). Do **not** combine it with `ghcr.io/devcontainers/features/sshd`. See [src/paperclip-agent](./src/paperclip-agent) for the shared-directory schema, Compose/`runArgs` setup, host-side enrollment script, and maintenance notes.
+Create `~/.paperclip` on the host before starting the container (`mkdir -p ~/.paperclip/projects`). Add `agent-home` to share the host's `~/.togetherlink` (or run `togetherlink configure` inside the target). Do **not** combine it with `ghcr.io/devcontainers/features/sshd`. See [src/paperclip-agent](./src/paperclip-agent) for the shared-directory schema, Compose/`runArgs` setup, manual host-side enrollment, and maintenance notes.
 
 ### `git-signing`
 

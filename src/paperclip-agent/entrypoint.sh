@@ -2,14 +2,21 @@
 # Entrypoint installed by the paperclip-agent devcontainer Feature.
 #
 # The devcontainer CLI chains feature entrypoints and passes the container's
-# command as arguments, so this script runs as root at container start and ends
-# with `exec "$@"` to hand control back to the image/devcontainer command.
+# command as arguments, so this script ends with `exec "$@"` to hand control
+# back to the image/devcontainer command.
 #
-# Fixed contract: sshd on 2222, workspace /workspace, shared config at
-# /opt/paperclip/shared, network paperclip-net, network alias = project slug.
+# An image-based target runs the chain as root. A Compose target whose service
+# sets `user:` runs it as the non-root remote user instead, so every privileged
+# step goes through `as_root` (passwordless sudo when it is not root). Without
+# root or sudo, sshd cannot start; `paperclip-agent-doctor` says why.
+#
+# Fixed contract: sshd on 2222, shared config at /opt/paperclip/shared, network
+# paperclip-net, network alias = project slug. The workspace path is resolved at
+# start (option, then $PWD, then /workspace) and recorded in the manifest.
 #
 # Responsibilities:
 #   - copy the shared authorized_keys into the remote user's ~/.ssh;
+#   - resolve the workspace path;
 #   - derive the project name/slug and write /opt/paperclip/environment.json;
 #   - generate default SSH host keys if the image has none;
 #   - start sshd if it is not already running.
@@ -22,15 +29,34 @@ set -u
 SHARED_DIR="/opt/paperclip/shared"
 AUTHORIZED_KEYS="${SHARED_DIR}/authorized_keys"
 MCP_CONFIG="${SHARED_DIR}/mcp-extra.json"
-MANIFEST="/opt/paperclip/environment.json"
+PAPERCLIP_DIR="/opt/paperclip"
+MANIFEST="${PAPERCLIP_DIR}/environment.json"
 USER_FILE="/etc/paperclip-agent/user"
 PROJECT_FILE="/etc/paperclip-agent/project-name"
 NETWORK_NAME="paperclip-net"
-REMOTE_WORKSPACE="/workspace"
+REMOTE_WORKSPACE_OPTION_FILE="/etc/paperclip-agent/remote-workspace"
+REMOTE_WORKSPACE_FILE="${PAPERCLIP_DIR}/remote-workspace"
 SSH_PORT=2222
 
 log() {
   printf 'paperclip-agent: %s\n' "$*" >&2
+}
+
+have_sudo=0
+if [ "$(id -u)" != "0" ] && command -v sudo >/dev/null 2>&1; then
+  sudo -n true >/dev/null 2>&1 && have_sudo=1
+fi
+
+# Run a command that needs root: directly as root, or through passwordless
+# sudo on a Compose target. Returns 127 when neither is available.
+as_root() {
+  if [ "$(id -u)" = "0" ]; then
+    "$@"
+  elif [ "$have_sudo" = "1" ]; then
+    sudo -n "$@"
+  else
+    return 127
+  fi
 }
 
 sshd_is_running() {
@@ -96,6 +122,34 @@ slugify() {
   # Docker network aliases are DNS labels, so cap the slug at 63 characters.
   printf '%s' "$1" | tr '[:upper:]' '[:lower:]' | sed -e 's/[^a-z0-9]\+/-/g' -e 's/^-//' -e 's/-$//' | cut -c1-63 | sed -e 's/-$//'
 }
+
+# Resolve the workspace path advertised in the manifest. install.sh persists the
+# remoteWorkspacePath option (empty when unset); a Compose service whose working
+# directory is the workspace needs no option, so fall back to $PWD when it is a
+# real absolute path other than /. /workspace is the final default.
+resolve_remote_workspace() {
+  _pa_workspace=""
+  if [ -r "$REMOTE_WORKSPACE_OPTION_FILE" ]; then
+    _pa_workspace=$(cat "$REMOTE_WORKSPACE_OPTION_FILE" 2>/dev/null || true)
+    _pa_workspace=$(printf '%s' "$_pa_workspace" | tr -d '\r\n' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+  fi
+  if [ -n "$_pa_workspace" ]; then
+    printf '%s\n' "$_pa_workspace"
+    return 0
+  fi
+
+  _pa_workspace="${PWD:-}"
+  case "$_pa_workspace" in
+    /?*)
+      printf '%s\n' "$_pa_workspace"
+      return 0
+      ;;
+  esac
+
+  printf '/workspace\n'
+}
+
+REMOTE_WORKSPACE=$(resolve_remote_workspace)
 
 # Derive the project name in the documented order. The first non-empty value
 # wins; the slug is used as the network alias and enrollment upsert key.
@@ -219,6 +273,25 @@ derive_project_name() {
   printf '%s\n' "$_pa_project"
 }
 
+# Write a runtime file into /opt/paperclip. install.sh owns the directory as the
+# remote user, so the direct write is the normal path. The sudo fallback covers
+# root-owned directories from images built before that change. Either way the
+# file is 0644 and readable by `docker exec cat`.
+install_runtime_file() {
+  _pa_src="$1"
+  _pa_dest="$2"
+  if [ -d "$PAPERCLIP_DIR" ] && [ -w "$PAPERCLIP_DIR" ] &&
+    cp "$_pa_src" "$_pa_dest" 2>/dev/null; then
+    chmod 0644 "$_pa_dest" 2>/dev/null || true
+  elif as_root install -d -m 0755 "$PAPERCLIP_DIR" 2>/dev/null &&
+    as_root install -m 0644 "$_pa_src" "$_pa_dest" 2>/dev/null; then
+    :
+  else
+    log "could not write ${_pa_dest}; make ${PAPERCLIP_DIR} owned by $(id -un) (rebuild the Feature) or allow passwordless sudo"
+    return 1
+  fi
+}
+
 write_manifest() {
   _pa_project=$(derive_project_name)
   _pa_slug=$(slugify "$_pa_project")
@@ -228,41 +301,64 @@ write_manifest() {
   [ -n "$_pa_hostname" ] || _pa_hostname=$(hostname 2>/dev/null || true)
   [ -n "$_pa_hostname" ] || _pa_hostname="unknown"
 
-  mkdir -p "$(dirname "$MANIFEST")" 2>/dev/null || true
-  cat >"$MANIFEST" <<EOF
+  _pa_manifest_tmp=$(mktemp 2>/dev/null || printf '/tmp/paperclip-agent-environment.%s' "$$")
+  cat >"$_pa_manifest_tmp" <<EOF
 {
   "containerId": "$(json_escape "$_pa_hostname")",
   "hostname": "$(json_escape "$_pa_hostname")",
   "projectName": "$(json_escape "$_pa_project")",
   "slug": "$(json_escape "$_pa_slug")",
   "network": { "name": "${NETWORK_NAME}", "alias": "$(json_escape "$_pa_slug")" },
-  "remoteWorkspacePath": "${REMOTE_WORKSPACE}",
+  "remoteWorkspacePath": "$(json_escape "$REMOTE_WORKSPACE")",
   "mcpConfigPath": "${MCP_CONFIG}",
   "generatedAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 }
 EOF
-  chmod 0644 "$MANIFEST" 2>/dev/null || true
+  install_runtime_file "$_pa_manifest_tmp" "$MANIFEST"
+  rm -f "$_pa_manifest_tmp"
+
+  # The profile and the doctor read this plain-text copy, so they do not have
+  # to parse the manifest and never re-derive the path from their own $PWD.
+  _pa_workspace_tmp=$(mktemp 2>/dev/null || printf '/tmp/paperclip-agent-workspace.%s' "$$")
+  printf '%s\n' "$REMOTE_WORKSPACE" >"$_pa_workspace_tmp"
+  install_runtime_file "$_pa_workspace_tmp" "$REMOTE_WORKSPACE_FILE"
+  rm -f "$_pa_workspace_tmp"
+}
+
+host_keys_present() {
+  for _pa_key in /etc/ssh/ssh_host_*_key; do
+    [ -f "$_pa_key" ] && return 0
+  done
+  return 1
 }
 
 ensure_host_keys() {
-  # ssh-keygen -A only creates keys that are missing, so this is safe on every
-  # start and also fills in a type the image did not ship.
-  ssh-keygen -A >/dev/null 2>&1 || log "could not generate SSH host keys"
+  # sshd exits with "no hostkeys available" when /etc/ssh has none. The build
+  # generates them as root; this covers Compose targets whose runtime user is
+  # the remote user, and images that shipped without keys.
+  host_keys_present && return 0
+  if command -v ssh-keygen >/dev/null 2>&1 &&
+    as_root ssh-keygen -A >/dev/null 2>&1 && host_keys_present; then
+    log "generated SSH host keys"
+    return 0
+  fi
+  log "SSH host keys are missing and could not be generated; run 'sudo ssh-keygen -A' and restart"
 }
 
 refresh_authorized_keys
 write_manifest
 
-mkdir -p /run/sshd 2>/dev/null || true
-chmod 0755 /run/sshd 2>/dev/null || true
+[ -d /run/sshd ] || as_root install -d -m 0755 /run/sshd 2>/dev/null || true
 ensure_host_keys
 
 _pa_sshd_bin="$(command -v sshd 2>/dev/null || true)"
 [ -n "$_pa_sshd_bin" ] || _pa_sshd_bin="/usr/sbin/sshd"
 if sshd_is_running; then
   log "sshd is already running"
-elif "$_pa_sshd_bin"; then
+elif as_root "$_pa_sshd_bin"; then
   log "started sshd on port ${SSH_PORT}"
+elif [ "$(id -u)" != "0" ] && [ "$have_sudo" != "1" ]; then
+  log "sshd must start as root; this entrypoint runs as $(id -un) without passwordless sudo. Leave the container user as root (remoteUser can still be ${_pa_user:-vscode}) or grant sudo."
 else
   log "sshd failed to start; run 'paperclip-agent-doctor' for details"
 fi

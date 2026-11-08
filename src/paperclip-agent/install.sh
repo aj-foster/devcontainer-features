@@ -7,7 +7,8 @@ set -euo pipefail
 # Fixed contract (the control plane and the host-side enrollment script depend
 # on these values):
 #   sshd port              2222
-#   remote workspace       /workspace
+#   remote workspace       resolved at start: remoteWorkspacePath option, then
+#                          the container working directory, then /workspace
 #   shared config          /opt/paperclip/shared (host ~/.paperclip)
 #   network                paperclip-net
 #   network alias          the project slug
@@ -23,11 +24,11 @@ set -euo pipefail
 # from the shared authorized_keys file.
 
 PROJECT_NAME="${PROJECTNAME:-}"
+REMOTE_WORKSPACE_OPTION="${REMOTEWORKSPACEPATH:-}"
 USERNAME="${_REMOTE_USER:-${_CONTAINER_USER:-vscode}}"
 FEATURE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 SSH_PORT=2222
-REMOTE_WORKSPACE_PATH="/workspace"
 PAPERCLIP_ROOT="/opt/paperclip"
 PAPERCLIP_SHARED_DIR="${PAPERCLIP_ROOT}/shared"
 PAPERCLIP_MCP_CONFIG="${PAPERCLIP_SHARED_DIR}/mcp-extra.json"
@@ -36,6 +37,7 @@ PAPERCLIP_NETWORK="paperclip-net"
 PAPERCLIP_AGENT_DIR="/etc/paperclip-agent"
 PAPERCLIP_USER_FILE="${PAPERCLIP_AGENT_DIR}/user"
 PAPERCLIP_PROJECT_FILE="${PAPERCLIP_AGENT_DIR}/project-name"
+PAPERCLIP_WORKSPACE_OPTION_FILE="${PAPERCLIP_AGENT_DIR}/remote-workspace"
 RUNTIME_DIR="/usr/local/share/paperclip-agent"
 PROFILE_SCRIPT="/etc/profile.d/paperclip-agent.sh"
 SSHD_CONFIG="/etc/ssh/sshd_config"
@@ -71,6 +73,7 @@ if command -v getent >/dev/null 2>&1; then
 else
   USER_HOME="$(awk -F: -v u="$USERNAME" '$1 == u { print $6; exit }' /etc/passwd)"
 fi
+USER_GROUP="$(id -gn "$USERNAME" 2>/dev/null || true)"
 
 if [ -z "$USER_HOME" ]; then
   die "remote user '${USERNAME}' does not exist in this image.
@@ -79,8 +82,15 @@ if [ -z "$USER_HOME" ]; then
        remoteUser to a user that exists."
 fi
 
-mkdir -p "$PAPERCLIP_ROOT"
-chmod 0755 "$PAPERCLIP_ROOT"
+# The entrypoint runs as the remote user on Compose targets, so the directory
+# that holds the runtime manifest must be writable by that user. Root-owned
+# directories from older builds still work through the entrypoint's sudo path.
+if [ "$(id -u)" = "0" ] && [ -n "$USER_GROUP" ]; then
+  install -d -m 0755 -o "$USERNAME" -g "$USER_GROUP" "$PAPERCLIP_ROOT"
+else
+  mkdir -p "$PAPERCLIP_ROOT"
+  chmod 0755 "$PAPERCLIP_ROOT"
+fi
 
 # --- sshd (always installed) -------------------------------------------------
 
@@ -101,7 +111,11 @@ chmod 0755 /run/sshd
 # Use the image's default host keys. The control plane connects with
 # strictHostKeyChecking: false on the local network, so there is no pinned
 # host key and no state volume.
-ssh-keygen -A
+command -v ssh-keygen >/dev/null 2>&1 ||
+  die "ssh-keygen is missing after installing openssh-server; cannot create SSH host keys."
+ssh-keygen -A || die "ssh-keygen -A failed; sshd would exit with 'no hostkeys available'."
+ls /etc/ssh/ssh_host_*_key >/dev/null 2>&1 ||
+  die "ssh-keygen -A produced no host keys in /etc/ssh; sshd would exit with 'no hostkeys available'."
 
 [ -f "$SSHD_CONFIG" ] ||
   die "sshd was installed but ${SSHD_CONFIG} is missing; the image is not a standard OpenSSH package."
@@ -195,14 +209,18 @@ echo "sshd configured on port ${SSH_PORT} for ${USERNAME}."
 # --- runtime inputs ----------------------------------------------------------
 
 # Runtime scripts cannot see the Feature's install-time environment variables.
-# Persist the two values they need: the resolved username and the optional
-# project-name override. The start script derives everything else.
+# Persist the values they need: the resolved username, the optional project-name
+# override, and the optional workspace path. An empty workspace file means the
+# start script resolves the path from the container's working directory. The
+# start script derives everything else.
 mkdir -p "$PAPERCLIP_AGENT_DIR"
 chmod 0755 "$PAPERCLIP_AGENT_DIR"
 printf '%s\n' "$USERNAME" >"$PAPERCLIP_USER_FILE"
 chmod 0644 "$PAPERCLIP_USER_FILE"
 printf '%s\n' "$PROJECT_NAME" >"$PAPERCLIP_PROJECT_FILE"
 chmod 0644 "$PAPERCLIP_PROJECT_FILE"
+printf '%s\n' "$REMOTE_WORKSPACE_OPTION" >"$PAPERCLIP_WORKSPACE_OPTION_FILE"
+chmod 0644 "$PAPERCLIP_WORKSPACE_OPTION_FILE"
 
 # --- locate the agent CLIs for the SSH PATH ----------------------------------
 
@@ -330,7 +348,13 @@ cat >"$PROFILE_SCRIPT" <<EOF
 # adapter handle the Together API key.
 export PATH="${profile_path}:\$PATH"
 export PAPERCLIP_AGENT_MCP_CONFIG="${PAPERCLIP_MCP_CONFIG}"
-export PAPERCLIP_AGENT_REMOTE_WORKSPACE="${REMOTE_WORKSPACE_PATH}"
+# The entrypoint records the resolved workspace at container start; /workspace
+# is the default until that file exists.
+PAPERCLIP_AGENT_REMOTE_WORKSPACE="/workspace"
+if [ -s "${PAPERCLIP_ROOT}/remote-workspace" ]; then
+  PAPERCLIP_AGENT_REMOTE_WORKSPACE="\$(cat "${PAPERCLIP_ROOT}/remote-workspace" 2>/dev/null || printf '%s' "\$PAPERCLIP_AGENT_REMOTE_WORKSPACE")"
+fi
+export PAPERCLIP_AGENT_REMOTE_WORKSPACE
 
 # Non-secret fleet settings (Paperclip API URL, company ID). Read by every
 # shell in every target; never put tokens in this file.
@@ -357,7 +381,7 @@ fi
 
 echo "paperclip-agent ready:"
 echo "  ssh:       ${USERNAME}@${PROJECT_SLUG:-<derived at start>}:${SSH_PORT} on ${PAPERCLIP_NETWORK}"
-echo "  workspace: ${REMOTE_WORKSPACE_PATH}"
+echo "  workspace: ${REMOTE_WORKSPACE_OPTION:-<derived at start: working directory, then /workspace>}"
 echo "  shared:    ${PAPERCLIP_SHARED_DIR} (host ~/.paperclip)"
 echo "  manifest:  ${PAPERCLIP_ROOT}/environment.json (written at container start)"
 echo "Run 'paperclip-agent-doctor --json' inside the container to verify."

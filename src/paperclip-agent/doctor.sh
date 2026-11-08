@@ -12,7 +12,8 @@
 #     "manifest": { ... }
 #   }
 #
-# Hard failures: sshd, claude, authorized_keys, mcp_config, and workspace.
+# Hard failures: sshd, ssh_host_keys, claude, authorized_keys, mcp_config,
+# manifest, and workspace.
 # Together Link presence/auth, MCP server reachability, Paperclip API DNS and
 # HTTP reachability are warnings.
 
@@ -32,15 +33,54 @@ SSH_PORT=2222
 SHARED_DIR="/opt/paperclip/shared"
 AUTHORIZED_KEYS="${SHARED_DIR}/authorized_keys"
 MCP_CONFIG="${SHARED_DIR}/mcp-extra.json"
-WORKSPACE="/workspace"
 MANIFEST="/opt/paperclip/environment.json"
 NETWORK_NAME="paperclip-net"
+WORKSPACE_FILE="/opt/paperclip/remote-workspace"
+WORKSPACE_OPTION_FILE="/etc/paperclip-agent/remote-workspace"
+
+# Print the workspace the entrypoint resolved at container start. Prefer the
+# plain-text copy it writes next to the manifest, then the manifest field, then
+# the persisted option. Never derive the path from this script's own $PWD: an
+# SSH command runs in the user's home directory, not the workspace.
+resolve_workspace() {
+  local path=""
+  if [ -r "$WORKSPACE_FILE" ]; then
+    IFS= read -r path <"$WORKSPACE_FILE" || true
+  fi
+  if [ -z "$path" ] && [ -f "$MANIFEST" ]; then
+    if command -v node >/dev/null 2>&1; then
+      path="$(node -e '
+        const fs = require("fs");
+        const j = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+        if (typeof j.remoteWorkspacePath === "string") process.stdout.write(j.remoteWorkspacePath);
+      ' "$MANIFEST" 2>/dev/null || true)"
+    elif command -v python3 >/dev/null 2>&1; then
+      path="$(python3 -c '
+import json, sys
+j = json.load(open(sys.argv[1]))
+v = j.get("remoteWorkspacePath")
+if isinstance(v, str):
+    sys.stdout.write(v)
+' "$MANIFEST" 2>/dev/null || true)"
+    else
+      path="$(sed -n 's/.*"remoteWorkspacePath"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$MANIFEST" 2>/dev/null | head -n 1)"
+    fi
+  fi
+  if [ -z "$path" ] && [ -r "$WORKSPACE_OPTION_FILE" ]; then
+    path="$(sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' "$WORKSPACE_OPTION_FILE" 2>/dev/null | head -n 1)"
+  fi
+
+  [ -n "$path" ] || path="/workspace"
+  printf '%s\n' "$path"
+}
 
 # Paperclip's SSH runner sources /etc/profile before each command. Source the
 # same file here so a manual `ssh target paperclip-agent-doctor` (a
 # non-interactive, non-login shell) sees the same PATH and paperclip.env.
 # shellcheck disable=SC1091
 [ -r /etc/profile.d/paperclip-agent.sh ] && . /etc/profile.d/paperclip-agent.sh
+
+WORKSPACE="$(resolve_workspace)"
 
 hard_failures=0
 json_checks=()
@@ -106,6 +146,18 @@ for name, cfg in servers.items():
     return 2
   fi
 }
+
+# --- sshd host keys ----------------------------------------------------------
+
+host_key_count=0
+for host_key in /etc/ssh/ssh_host_*_key; do
+  [ -f "$host_key" ] && host_key_count=$((host_key_count + 1))
+done
+if [ "$host_key_count" -gt 0 ]; then
+  add_check ssh_host_keys true "${host_key_count} key(s) in /etc/ssh" 1
+else
+  add_check ssh_host_keys false "no /etc/ssh/ssh_host_*_key; run 'sudo ssh-keygen -A' (sshd exits with 'no hostkeys available')" 1
+fi
 
 # --- sshd --------------------------------------------------------------------
 
@@ -225,7 +277,7 @@ rm -f "$mcp_tmp"
 if [ -d "$WORKSPACE" ]; then
   add_check workspace true "${WORKSPACE}" 1
 else
-  add_check workspace false "missing: ${WORKSPACE}" 1
+  add_check workspace false "missing: ${WORKSPACE}; set remoteWorkspacePath or make the container working directory the workspace" 1
 fi
 
 # --- Paperclip API DNS and HTTP (warnings) -----------------------------------
@@ -254,6 +306,35 @@ else
     200 | 401 | 403) add_check paperclip_api true "HTTP ${code}" 0 ;;
     *) add_check paperclip_api false "unreachable (HTTP ${code:-000})" 0 ;;
   esac
+fi
+
+# --- manifest presence and writability ---------------------------------------
+
+# The entrypoint rewrites the manifest on every start. On a Compose target it
+# runs as the remote user, so a root-owned /opt/paperclip needs sudo.
+manifest_dir="$(dirname "$MANIFEST")"
+manifest_writable=0
+if [ -f "$MANIFEST" ]; then
+  # The entrypoint overwrites the existing file, so its own mode decides.
+  [ -w "$MANIFEST" ] && manifest_writable=1
+elif [ -w "$manifest_dir" ]; then
+  manifest_writable=1
+fi
+if [ "$manifest_writable" -eq 0 ] &&
+  command -v sudo >/dev/null 2>&1 && sudo -n true >/dev/null 2>&1; then
+  manifest_writable=1
+fi
+
+if [ -f "$MANIFEST" ] && [ -r "$MANIFEST" ] && [ "$manifest_writable" -eq 1 ]; then
+  add_check manifest true "present and writable: ${MANIFEST}" 1
+elif [ -f "$MANIFEST" ] && [ -r "$MANIFEST" ]; then
+  add_check manifest false "${MANIFEST} exists but is not writable by $(id -un); the next start cannot update it. Rebuild the Feature so ${manifest_dir} is owned by the remote user, or allow passwordless sudo" 1
+elif [ -f "$MANIFEST" ]; then
+  add_check manifest false "present but unreadable: ${MANIFEST}" 1
+elif [ "$manifest_writable" -eq 1 ]; then
+  add_check manifest false "missing: ${MANIFEST}; ${manifest_dir} is writable, so the entrypoint did not run or failed — check 'docker logs' and restart the container" 1
+else
+  add_check manifest false "missing: ${MANIFEST}, and ${manifest_dir} is not writable by $(id -un). Rebuild the Feature so the directory is owned by the remote user, or allow passwordless sudo" 1
 fi
 
 # --- manifest fields ---------------------------------------------------------

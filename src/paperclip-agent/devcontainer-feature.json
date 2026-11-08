@@ -22,6 +22,11 @@
       "type": "string",
       "default": "",
       "description": "Optional human-friendly project name. Empty derives it from the workspace (git remote, package metadata, folder name, then hostname)."
+    },
+    "remoteWorkspacePath": {
+      "type": "string",
+      "default": "",
+      "description": "Absolute path to the agent's workspace inside the container. Empty resolves it at start from the container's working directory, then /workspace. Set it for Compose targets whose service working directory is not the workspace."
     }
   },
   "dependsOn": {

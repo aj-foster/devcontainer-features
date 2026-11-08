@@ -10,9 +10,13 @@
       "userUid": "1000",
       "userGid": "1000"
     },
-    "ghcr.io/devcontainers/features/git:1": {}
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/aj-foster/devcontainer-features/paperclip-agent:1": {
+      "projectName": "devcontainer-features"
+    }
   },
   "remoteUser": "vscode",
+  "runArgs": ["--network=paperclip-net", "--network-alias=devcontainer-features"],
   "workspaceFolder": "/workspace",
   "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind"
 }

@@ -1,5 +1,14 @@
 {
   "features": {
+    "ghcr.io/aj-foster/devcontainer-features/paperclip-agent:1": {
+      "version": "1.0.0",
+      "resolved": "ghcr.io/aj-foster/devcontainer-features/paperclip-agent@sha256:eab3816ffe06b9758eaebd85efdc2be11e7fdd243ec44cd1e78031a9a8e85ad2",
+      "integrity": "sha256:eab3816ffe06b9758eaebd85efdc2be11e7fdd243ec44cd1e78031a9a8e85ad2",
+      "dependsOn": [
+        "ghcr.io/aj-foster/devcontainer-features/claude-code:1",
+        "ghcr.io/aj-foster/devcontainer-features/together-link:1"
+      ]
+    },
     "ghcr.io/devcontainers/features/common-utils:2": {
       "version": "2.7.1",
       "resolved": "ghcr.io/devcontainers/features/common-utils@sha256:e76a6a8a35d1ad824daad1540725e0ec9f8ed2dc00d2850e990a9830013c7d08",

@@ -1,6 +1,6 @@
 {
   "id": "paperclip-agent",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "name": "Paperclip agent host (SSH + Claude Code + Together Link)",
   "description": "Prepares a dev container as a Paperclip SSH target on the shared paperclip-net network: key-only sshd on 2222, Claude Code and Together Link on the SSH PATH, shared fleet config from the host's ~/.paperclip, and a manifest whose slug is the network alias.",
   "documentationURL": "https://github.com/aj-foster/devcontainer-features/tree/main/src/paperclip-agent",

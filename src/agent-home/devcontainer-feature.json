@@ -15,8 +15,8 @@
   ],
   "mounts": [
     {
-      "source": "${localEnv:HOME}${localEnv:USERPROFILE}/.cursor",
-      "target": "/home/vscode/.cursor",
+      "source": "${localEnv:HOME}${localEnv:USERPROFILE}/.agents",
+      "target": "/home/vscode/.agents",
       "type": "bind"
     },
     {
@@ -30,18 +30,18 @@
       "type": "bind"
     },
     {
-      "source": "${localEnv:HOME}${localEnv:USERPROFILE}/.copilot",
-      "target": "/home/vscode/.copilot",
-      "type": "bind"
-    },
-    {
       "source": "${localEnv:HOME}${localEnv:USERPROFILE}/.codex",
       "target": "/home/vscode/.codex",
       "type": "bind"
     },
     {
-      "source": "${localEnv:HOME}${localEnv:USERPROFILE}/.agents",
-      "target": "/home/vscode/.agents",
+      "source": "${localEnv:HOME}${localEnv:USERPROFILE}/.copilot",
+      "target": "/home/vscode/.copilot",
+      "type": "bind"
+    },
+    {
+      "source": "${localEnv:HOME}${localEnv:USERPROFILE}/.cursor",
+      "target": "/home/vscode/.cursor",
       "type": "bind"
     },
     {

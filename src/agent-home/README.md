@@ -8,12 +8,12 @@ This feature is specifically made for devcontainers run by VS Code (or Cursor).
 
 | Host path         | Container path               | Purpose                                        |
 | ----------------- | ---------------------------- | ---------------------------------------------- |
-| `~/.cursor`       | `/home/vscode/.cursor`       | Cursor MCP, skills, rules                      |
+| `~/.agents`       | `/home/vscode/.agents`       | Canonical `npx skills` store (symlink targets) |
 | `~/.claude`       | `/home/vscode/.claude`       | Claude skills, rules, agents, plugins          |
 | `~/.claude.json`  | `/home/vscode/.claude.json`  | Claude OAuth / personal MCP                    |
-| `~/.copilot`      | `/home/vscode/.copilot`      | Copilot CLI config, skills, auth, sessions     |
 | `~/.codex`        | `/home/vscode/.codex`        | Codex CLI config, MCP, auth, skills, sessions  |
-| `~/.agents`       | `/home/vscode/.agents`       | Canonical `npx skills` store (symlink targets) |
+| `~/.copilot`      | `/home/vscode/.copilot`      | Copilot CLI config, skills, auth, sessions     |
+| `~/.cursor`       | `/home/vscode/.cursor`       | Cursor MCP, skills, rules                      |
 | `~/.togetherlink` | `/home/vscode/.togetherlink` | Together Link config/auth (`config.json`)      |
 
 `~/.agents` is required for symlink-mode global skills (`npx skills add -g`),
@@ -50,7 +50,7 @@ Assumes `remoteUser` is `vscode`.
 Bind mounts fail if the source path is missing. On the host:
 
 ```bash
-mkdir -p ~/.cursor ~/.claude ~/.copilot ~/.codex ~/.agents
+mkdir -p ~/.agents ~/.claude ~/.codex ~/.copilot ~/.cursor
 touch ~/.claude.json
 ```
 

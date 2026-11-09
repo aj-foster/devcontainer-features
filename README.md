@@ -37,7 +37,7 @@ Or enable it for all containers via user settings:
 Assumes `remoteUser` is `vscode`. Host paths must exist before the container starts:
 
 ```bash
-mkdir -p ~/.cursor ~/.claude ~/.copilot ~/.codex ~/.agents
+mkdir -p ~/.agents ~/.claude ~/.codex ~/.copilot ~/.cursor
 touch ~/.claude.json
 ```
 

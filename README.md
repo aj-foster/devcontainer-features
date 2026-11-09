@@ -15,7 +15,7 @@ mkdir -p .devcontainer && curl -fsSL https://raw.githubusercontent.com/aj-foster
 
 ### `agent-home`
 
-Bind-mounts host Cursor, Claude Code, and shared `~/.agents` config into the container so MCP settings, skills, and rules stay in sync with the host.
+Bind-mounts host Cursor, Claude Code, Copilot CLI, and shared `~/.agents` config into the container so MCP settings, skills, and rules stay in sync with the host.
 
 ```jsonc
 {
@@ -37,7 +37,7 @@ Or enable it for all containers via user settings:
 Assumes `remoteUser` is `vscode`. Host paths must exist before the container starts:
 
 ```bash
-mkdir -p ~/.cursor ~/.claude ~/.agents
+mkdir -p ~/.cursor ~/.claude ~/.copilot ~/.agents
 touch ~/.claude.json
 ```
 

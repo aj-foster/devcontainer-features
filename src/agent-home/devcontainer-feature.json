@@ -2,12 +2,13 @@
   "id": "agent-home",
   "version": "1.1.0",
   "name": "Agent Home (host bind mounts)",
-  "description": "Bind-mount host Cursor, Claude Code, Copilot CLI, and shared agents config (skills/rules/MCP) into the container user home.",
+  "description": "Bind-mount host Cursor, Claude Code, Copilot CLI, Codex CLI, and shared agents config (skills/rules/MCP) into the container user home.",
   "documentationURL": "https://github.com/aj-foster/devcontainer-features/tree/main/src/agent-home",
   "keywords": [
     "cursor",
     "claude",
     "copilot",
+    "codex",
     "agents",
     "skills",
     "mcp"
@@ -31,6 +32,11 @@
     {
       "source": "${localEnv:HOME}${localEnv:USERPROFILE}/.copilot",
       "target": "/home/vscode/.copilot",
+      "type": "bind"
+    },
+    {
+      "source": "${localEnv:HOME}${localEnv:USERPROFILE}/.codex",
+      "target": "/home/vscode/.codex",
       "type": "bind"
     },
     {

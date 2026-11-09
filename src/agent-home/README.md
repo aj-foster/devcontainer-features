@@ -1,6 +1,6 @@
 # Agent Home
 
-Bind-mounts host Cursor, Claude Code, Copilot CLI, and shared `~/.agents` config into the devcontainer so MCP settings, skills, and rules stay in sync with the host.
+Bind-mounts host Cursor, Claude Code, Copilot CLI, Codex CLI, and shared `~/.agents` config into the devcontainer so MCP settings, skills, and rules stay in sync with the host.
 
 This feature is specifically made for devcontainers run by VS Code (or Cursor).
 
@@ -12,6 +12,7 @@ This feature is specifically made for devcontainers run by VS Code (or Cursor).
 | `~/.claude`       | `/home/vscode/.claude`       | Claude skills, rules, agents, plugins          |
 | `~/.claude.json`  | `/home/vscode/.claude.json`  | Claude OAuth / personal MCP                    |
 | `~/.copilot`      | `/home/vscode/.copilot`      | Copilot CLI config, skills, auth, sessions     |
+| `~/.codex`        | `/home/vscode/.codex`        | Codex CLI config, MCP, auth, skills, sessions  |
 | `~/.agents`       | `/home/vscode/.agents`       | Canonical `npx skills` store (symlink targets) |
 | `~/.togetherlink` | `/home/vscode/.togetherlink` | Together Link config/auth (`config.json`)      |
 
@@ -26,6 +27,16 @@ GitHub account by default (`remoteExport: true` in `settings.json`), so the moun
 mainly shares config, skills, and auth; set `COPILOT_HOME` to relocate the whole
 directory if you prefer a different location.
 
+`~/.codex` is the Codex CLI's entire home (`CODEX_HOME`): `config.toml`
+(model/provider settings and `[mcp_servers]`), `auth.json` (credentials),
+`AGENTS.md` (global instructions), `skills/`, `sessions/`, `history.jsonl`, logs,
+and the SQLite state DB. Codex also reads `~/.agents/skills`, so the canonical
+skills store is shared without another mount. Credentials use the file backend
+by default; if the host's `config.toml` selects keyring storage, `auth.json` is
+absent and auth will not carry into the container. The state DB is shared, so
+avoid running Codex on the host and in the container at the same time. Set
+`CODEX_HOME` to relocate the whole directory.
+
 The [`together-link`](../together-link) Feature installs the Together Link CLI
 into `/opt/together-link`, so this mount shares only Together Link's
 `config.json` (auth/profile). The CLI reads config from `~/.togetherlink`
@@ -39,7 +50,7 @@ Assumes `remoteUser` is `vscode`.
 Bind mounts fail if the source path is missing. On the host:
 
 ```bash
-mkdir -p ~/.cursor ~/.claude ~/.copilot ~/.agents
+mkdir -p ~/.cursor ~/.claude ~/.copilot ~/.codex ~/.agents
 touch ~/.claude.json
 ```
 

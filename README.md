@@ -4,6 +4,29 @@ A collection of [dev container Features](https://containers.dev/implementors/fea
 
 ## Getting started
 
+Many of the features in the repository work together. If you'd like them all, start by running the following commands on your **host machine**:
+
+```bash
+mkdir -p ~/.agents ~/.claude ~/.codex ~/.copilot ~/.cursor ~/.togetherlink ~/.paperclip/projects
+touch ~/.claude.json
+```
+
+Then, add the following to your VS Code user settings:
+
+```json
+"dev.containers.defaultFeatures": {
+  "ghcr.io/aj-foster/devcontainer-features/agent-home:1": {},
+  "ghcr.io/aj-foster/devcontainer-features/claude-code:1": {},
+  "ghcr.io/aj-foster/devcontainer-features/together-link:1": {},
+  "ghcr.io/aj-foster/devcontainer-features/paperclip-agent:1": {},
+  "ghcr.io/aj-foster/devcontainer-features/git-signing:1": {
+    "signingKey": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI... user@host"
+  }
+}
+```
+
+This will automatically install the features in every dev container opened by VS Code. You'll need to fill in your SSH signing public key (or omit that feature if you aren't signing commits).
+
 Don't have a `.devcontainer/` in your project yet? Run one of these from your project root to copy this repo's `devcontainer.json` into the right place:
 
 ```bash

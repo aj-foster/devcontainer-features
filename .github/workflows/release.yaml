@@ -1,4 +1,4 @@
-name: "Release dev container features"
+name: "Release Features"
 on:
   workflow_dispatch:
 
@@ -9,7 +9,7 @@ jobs:
     permissions:
       packages: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: "Publish Features"
         uses: devcontainers/action@v1

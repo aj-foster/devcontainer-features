@@ -12,6 +12,23 @@ Installs the Claude Code CLI (`@anthropic-ai/claude-code`) as the remote user so
 
 This feature installs (or chowns) as the remote user so `claude update` can succeed.
 
+## Auto-update and npm's `allow-scripts`
+
+Claude Code 2.1+ ships `bin/claude.exe` as a small stub; its `postinstall` (`install.cjs`) replaces it with the platform-native binary. npm 11 treats lifecycle scripts as unreviewed until allowlisted and warns on every install:
+
+```
+1 package has install scripts not yet covered by allowScripts:
+  @anthropic-ai/claude-code@2.1.319 (postinstall: node install.cjs)
+```
+
+If a stricter npm refuses to run the script, auto-update leaves the stub in place and `claude` fails with "postinstall did not run". The Feature pre-approves the package in the remote user's `~/.npmrc`:
+
+```sh
+npm config set allow-scripts=@anthropic-ai/claude-code --location=user
+```
+
+so every future auto-update runs the postinstall. The bare name (no version) covers every version the updater installs; npm versions predating `allow-scripts` ignore the key.
+
 ## Requirements
 
 Uses `npm` if it is already on PATH. `installsAfter` waits for [`ghcr.io/devcontainers/features/node`](https://github.com/devcontainers/features/tree/main/src/node) when that Feature is also enabled, so project Node options are honored.
